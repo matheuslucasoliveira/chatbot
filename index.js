@@ -2,19 +2,24 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+// Carregar variáveis de ambiente
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Configure the API key
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const genAI = new GoogleGenerativeAI("AIzaSyCqP-ECXVQGdoUAHlPmskxuBIdk_abu-PU");
-
-
+// Create Express app
 const app = express();
+
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
 
-
+// System instruction that defines the chatbot's personality
 const SYSTEM_INSTRUCTION = `Você é um assistente amigável e prestativo chamado GeminiBot. 
 Sua personalidade é:
 - Amigável e acolhedor
@@ -30,8 +35,6 @@ async function generateResponse(prompt) {
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
                 temperature: 0.7,
-                topK: 40,
-                topP: 0.95,
                 maxOutputTokens: 1024,
             },
         });
@@ -39,12 +42,12 @@ async function generateResponse(prompt) {
         const response = await result.response;
         return response.text();
     } catch (error) {
-        console.error("Erro ao processar a mensagem:", error);
+        console.error("Erro:", error);
         throw new Error("Erro ao processar a mensagem");
     }
 }
 
-
+// Chat endpoint
 app.post('/chat', async (req, res) => {
     try {
         const { message } = req.body;
@@ -55,13 +58,16 @@ app.post('/chat', async (req, res) => {
     }
 });
 
-
+// Serve index.html
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Export the Express API
+export default app;
 
+// Iniciar o servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 }); 
